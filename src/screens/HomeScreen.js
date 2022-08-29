@@ -44,7 +44,7 @@ const HomeScreen = ({ navigation }) => {
 
   // location api
   useEffect(() => {
-    async () => {
+    (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Permission to access location was denied");
@@ -60,18 +60,18 @@ const HomeScreen = ({ navigation }) => {
       //console.log("_id: " + userInfo._id);
       // if doctor is available for emergency...
       // add conditions here
+      console.log("doctor ready for emergency...");
       socket.emit("EmergencyDoctorAvaliable", {
         socketId: socket.id,
         userId: userInfo._id,
         location: location.coords,
       });
-    };
+    })();
   }, []);
 
   if (!loaded) {
     return null;
   }
-  console.log(userInfo);
   if (userInfo === null) {
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ActivityIndicator size={"large"} />

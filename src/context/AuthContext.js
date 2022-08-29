@@ -23,10 +23,21 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  async function saveUserInfoAsyncStorage(value) {
+    try {
+      setUserInfo(value);
+      await AsyncStorage.setItem("userInfo", JSON.stringify(value));
+      console.log("saved user info into async storage..");
+    } catch (error) {
+      console.log("error during saving user info into async storage...");
+      console.log(error);
+    }
+  }
+
   async function saveData(key, value) {
     try {
       setIsLoading(true);
-      await AsyncStorage.setItem(key, value);
+      await AsyncStorage.setItem(key, JSON.stringify(value));
       setIsLoading(false);
     } catch (error) {
       console.log("error during saving async storage...");
@@ -98,10 +109,11 @@ export const AuthProvider = ({ children }) => {
         .then((res) => {
           let userInfo = res.data;
           console.log("user info saved...");
-          setUserInfo(userInfo);
-          saveData("userInfo", JSON.stringify(userInfo));
+          saveUserInfoAsyncStorage(userInfo);
+          // setUserInfo(userInfo);
+          // saveData("userInfo", userInfo);
           // AsyncStorage.setItem("userInfo", JSON.stringify(userInfo));
-          // setIsLoading(false);
+          setIsLoading(false);
         })
         .catch((error) => {
           if (error.response) {
@@ -148,7 +160,16 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ login, logout, isLoading, registration, userInfo, userToken }}
+      value={{
+        login,
+        logout,
+        isLoading,
+        registration,
+        userInfo,
+        userToken,
+        saveUserInfoAsyncStorage,
+        setUserInfo,
+      }}
     >
       {children}
     </AuthContext.Provider>

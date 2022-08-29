@@ -21,13 +21,11 @@ import {
   MaterialCommunityIcons,
   Fontisto,
 } from "@expo/vector-icons";
-import DropDownPicker from "react-native-dropdown-picker";
-
 import { PROXY_URL } from "@env";
-
 import { AuthContext } from "../context/AuthContext";
 import SelectList from "react-native-dropdown-select-list";
 import TextInputWithLabel from "../components/TextInputWithLabel";
+import axios from "axios";
 
 const ProfileScreen = ({ navigation }) => {
   const [loaded] = useFonts({
@@ -35,16 +33,21 @@ const ProfileScreen = ({ navigation }) => {
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { userInfo, userToken } = useContext(AuthContext);
-  const [mobile, setMobile] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [zilla, setZilla] = useState("");
+  const { userInfo, setUserInfo, userToken, saveUserInfoAsyncStorage } =
+    useContext(AuthContext);
+  const [mobile, setMobile] = useState(userInfo.mobile);
+  const [fullName, setFullName] = useState(userInfo.fullName);
+  const [zilla, setZilla] = useState("Dhaka");
   const [upzilla, setUpzilla] = useState("");
   const [thana, setThana] = useState("");
-  const [email, setEmail] = useState("");
-  const [nid, setNid] = useState("");
-  const [presentAddressDetails, setPresentAddressDetails] = useState("");
-  const [permanentAddressDetails, setPermanentAddressDetails] = useState("");
+  const [email, setEmail] = useState(userInfo.email);
+  const [nid, setNid] = useState(userInfo.nid);
+  const [presentAddressDetails, setPresentAddressDetails] = useState(
+    userInfo.presentAddressDetails
+  );
+  const [permanentAddressDetails, setPermanentAddressDetails] = useState(
+    userInfo.permanentAddressDetails
+  );
 
   const zillaList = [
     { key: "1", value: "Dhaka" },
@@ -65,6 +68,42 @@ const ProfileScreen = ({ navigation }) => {
     { key: "3", value: "Gobindogonj" },
     { key: "4", value: "Chapai" },
   ];
+
+  const submitFormHandler = async () => {
+    setIsLoading(true);
+    let data = {
+      fullName,
+      email,
+      nid,
+      presentAddressDetails,
+      permanentAddressDetails,
+    };
+    try {
+      const resp = await axios.put(`${PROXY_URL}/api/doctors/profile`, data, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      if (resp.data) {
+        //  setUserInfo(resp.data.user);
+        saveUserInfoAsyncStorage(resp.data.user);
+        setIsLoading(false);
+        return alert(resp.data.success);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsLoading(false);
+      return alert("Something went wrong...");
+    }
+  };
+
+  if (userInfo === null) {
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator size={"large"} />
+    </View>;
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
@@ -117,7 +156,7 @@ const ProfileScreen = ({ navigation }) => {
               style={{ marginRight: 5 }}
             />
           }
-          value={mobile}
+          value={userInfo.mobile}
           setValue={setMobile}
           keyboardType="phone-pad"
         />
@@ -151,6 +190,16 @@ const ProfileScreen = ({ navigation }) => {
         />
 
         {/* present address  */}
+        <Text
+          style={{
+            fontFamily: "Roboto-Medium",
+            fontSize: 15,
+            color: COLORS.iconColor,
+            fontWeight: "bold",
+          }}
+        >
+          Present Address
+        </Text>
         <View style={{ marginBottom: 20 }}>
           <SelectList
             placeholder="Zilla"
@@ -225,6 +274,16 @@ const ProfileScreen = ({ navigation }) => {
         />
 
         {/* permanent address  */}
+        <Text
+          style={{
+            fontFamily: "Roboto-Medium",
+            fontSize: 15,
+            color: COLORS.iconColor,
+            fontWeight: "bold",
+          }}
+        >
+          Permanent Address
+        </Text>
         <View style={{ marginBottom: 20 }}>
           <SelectList
             placeholder="Zilla"
@@ -298,7 +357,7 @@ const ProfileScreen = ({ navigation }) => {
           setValue={setPermanentAddressDetails}
         />
         <TouchableOpacity
-          onPress={() => {}}
+          onPress={submitFormHandler}
           style={{
             flex: 1,
             backgroundColor: COLORS.main,
