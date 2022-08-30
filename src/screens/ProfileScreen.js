@@ -1,6 +1,4 @@
 import {
-  FlatList,
-  ImageBackground,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,7 +11,7 @@ import {
 } from "react-native";
 import COLORS from "../utils/Colors";
 import { useFonts } from "expo-font";
-import React, { useEffect, useState, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   MaterialIcons,
   FontAwesome,
@@ -32,8 +30,8 @@ const ProfileScreen = ({ navigation }) => {
     "Roboto-Medium": require("../../assets/fonts/Roboto-Medium.ttf"),
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const { userInfo, setUserInfo, userToken, saveUserInfoAsyncStorage } =
+
+  const { userInfo, isLoading, userToken, updateProfile } =
     useContext(AuthContext);
   const [mobile, setMobile] = useState(userInfo.mobile);
   const [fullName, setFullName] = useState(userInfo.fullName);
@@ -70,7 +68,6 @@ const ProfileScreen = ({ navigation }) => {
   ];
 
   const submitFormHandler = async () => {
-    setIsLoading(true);
     let data = {
       fullName,
       email,
@@ -78,25 +75,7 @@ const ProfileScreen = ({ navigation }) => {
       presentAddressDetails,
       permanentAddressDetails,
     };
-    try {
-      const resp = await axios.put(`${PROXY_URL}/api/doctors/profile`, data, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Content-type": "Application/json",
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-      if (resp.data) {
-        //  setUserInfo(resp.data.user);
-        saveUserInfoAsyncStorage(resp.data.user);
-        setIsLoading(false);
-        return alert(resp.data.success);
-      }
-    } catch (err) {
-      console.error(err);
-      setIsLoading(false);
-      return alert("Something went wrong...");
-    }
+    updateProfile(data);
   };
 
   if (userInfo === null) {
