@@ -41,7 +41,6 @@ const HomeScreen = ({ navigation }) => {
       callingEventHandler();
     });
   }, []);
-
   // location api
   useEffect(() => {
     (async () => {
@@ -72,7 +71,7 @@ const HomeScreen = ({ navigation }) => {
   if (!loaded) {
     return null;
   }
-  if (userInfo === null) {
+  if (userInfo === undefined) {
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ActivityIndicator size={"large"} />
     </View>;

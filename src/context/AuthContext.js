@@ -8,7 +8,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [userToken, setUserToken] = useState(null);
-  const [userInfo, setUserInfo] = useState();
+  const [userInfo, setUserInfo] = useState(null);
 
   useEffect(() => {
     isLoggedIn();
@@ -26,9 +26,7 @@ export const AuthProvider = ({ children }) => {
   saveUserInfoAsyncStorage = async (value) => {
     try {
       setUserInfo(value);
-      console.log("context of userinfo updated...");
       await AsyncStorage.setItem("userInfo", JSON.stringify(value));
-      console.log("async storage of userinfo updated...");
     } catch (error) {
       console.log(error);
     }
@@ -36,24 +34,28 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (mobile, password) => {
     setIsLoading(true);
-    axios
-      .post(`${PROXY_URL}/api/auth/doctor/login`, {
+    try {
+      const user = await axios.post(`${PROXY_URL}/api/auth/doctor/login`, {
         mobile,
         password,
-      })
-      .then((res) => {
-        let userToken = res.data.token;
-        setUserToken(userToken);
-        saveSecureData("userToken", userToken);
-        getUserProfile(userToken);
-      })
-      .catch((error) => {
-        if (error.response) {
-          console.log(error.response.data.error);
-          setIsLoading(false);
-          return alert(error.response.data.error);
-        }
       });
+      const token = await user.data.token;
+      const userInfo = await axios.get(`${PROXY_URL}/api/auth/doctor/profile`, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUserInfo(userInfo.data);
+      setUserToken(token);
+      saveUserInfoAsyncStorage(userInfo.data);
+      saveSecureData("userToken", token);
+      setIsLoading(false);
+      console.log("user info saved....");
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   // logout | clear user token | clear user info
@@ -83,39 +85,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // get user details
-  const getUserProfile = async (token) => {
-    console.log("getUserProfile");
-    try {
-      axios
-        .get(`${PROXY_URL}/api/auth/doctor/profile`, {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Content-type": "Application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          let userInfo = res.data;
-          console.log("user info saved...");
-          saveUserInfoAsyncStorage(userInfo);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          if (error.response) {
-            console.log(error.response.data.error);
-            setIsLoading(false);
-            return alert(error.response.data.error);
-          }
-        });
-    } catch (error) {
-      if (error.response) {
-        console.log(error.response.data);
-        setIsLoading(false);
-        return alert("Something went wrong..");
-      }
-    }
-  };
+  // // get user details
+  // const getUserProfile = async (token) => {
+  //   console.log("getUserProfile");
+  //   try {
+  //     axios
+  //       .get(`${PROXY_URL}/api/auth/doctor/profile`, {
+  //         headers: {
+  //           "Access-Control-Allow-Origin": "*",
+  //           "Content-type": "Application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       })
+  //       .then((res) => {
+  //         let userInfo = res.data;
+  //         console.log("user info saved...");
+  //         saveUserInfoAsyncStorage(userInfo);
+  //         if (userInfo) {
+  //           setIsLoading(false);
+  //         }
+  //       })
+  //       .catch((error) => {
+  //         if (error.response) {
+  //           console.log(error.response.data.error);
+  //           setIsLoading(false);
+  //           return alert(error.response.data.error);
+  //         }
+  //       });
+  //   } catch (error) {
+  //     if (error.response) {
+  //       console.log(error.response.data);
+  //       setIsLoading(false);
+  //       return alert("Something went wrong..");
+  //     }
+  //   }
+  // };
 
   const registration = async (verified, mobile, password) => {
     setIsLoading(true);

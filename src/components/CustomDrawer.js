@@ -46,7 +46,7 @@ const CustomDrawer = (props) => {
           <Text
             style={{ color: "white", fontSize: 20, fontFamily: "Montserrat" }}
           >
-            {userInfo.fullName ? userInfo.fullName : "loading..."}
+            {userInfo?.fullName}
           </Text>
           <View
             style={{
