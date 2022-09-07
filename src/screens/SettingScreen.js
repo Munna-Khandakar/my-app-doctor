@@ -1,6 +1,4 @@
 import {
-  FlatList,
-  ImageBackground,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -8,48 +6,91 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
+  ActivityIndicator,
 } from "react-native";
+import COLORS from "../utils/Colors";
 import { useFonts } from "expo-font";
-import React, { useEffect, useState, useContext } from "react";
-import { Entypo, MaterialIcons } from "@expo/vector-icons";
-import * as Location from "expo-location";
+import React, { useState, useContext } from "react";
+import {
+  MaterialIcons,
+  FontAwesome,
+  AntDesign,
+  MaterialCommunityIcons,
+  Fontisto,
+  FontAwesome5,
+} from "@expo/vector-icons";
 import { PROXY_URL } from "@env";
-import io from "socket.io-client";
 import { AuthContext } from "../context/AuthContext";
+import SelectList from "react-native-dropdown-select-list";
+import TextInputWithLabel from "../components/TextInputWithLabel";
+import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
 
 const SettingScreen = () => {
   const [loaded] = useFonts({
     "Roboto-Medium": require("../../assets/fonts/Roboto-Medium.ttf"),
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
-  const { userInfo, userToken } = useContext(AuthContext);
-  const [mobile, setMobile] = useState("");
+  const { userInfo, isLoading, updateSettings } = useContext(AuthContext);
+
+  const [charge, setCharge] = useState(userInfo.charge);
+
+  const submitFormHandler = async () => {
+    let data = {
+      charge,
+    };
+    updateSettings(data);
+  };
+
+  if (userInfo === null) {
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator size={"large"} />
+    </View>;
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <ScrollView style={{ padding: 20, marginTop: 20 }}>
-        <View
+        <TextInputWithLabel
+          label="Consultant Fee"
+          icon={
+            <FontAwesome
+              name="money"
+              size={20}
+              color="#666"
+              style={{ marginRight: 5 }}
+            />
+          }
+          value={charge}
+          setValue={setCharge}
+        />
+
+        <TouchableOpacity
+          onPress={submitFormHandler}
           style={{
-            flexDirection: "row",
-            borderBottomColor: "#ccc",
-            borderBottomWidth: 1,
-            paddingBottom: 8,
-            marginBottom: 25,
+            flex: 1,
+            backgroundColor: COLORS.main,
+            padding: 20,
+            borderRadius: 10,
+            marginBottom: 30,
           }}
+          // disabled={!isLoading}
         >
-          <MaterialIcons
-            name="phone"
-            size={20}
-            color="#666"
-            style={{ marginRight: 5 }}
-          />
-          <TextInput
-            placeholder="Phone Number"
-            style={{ flex: 1, paddingVertical: 0 }}
-            keyboardType="phone-pad"
-            value={mobile}
-            onChangeText={(number) => setMobile(number)}
-          />
-        </View>
+          {isLoading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text
+              style={{
+                textAlign: "center",
+                fontWeight: "700",
+                color: "white",
+              }}
+            >
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

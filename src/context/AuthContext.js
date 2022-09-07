@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
-
+  const [image, setImage] = useState("");
   useEffect(() => {
     isLoggedIn();
   }, []);
@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       console.log("user info saved....");
     } catch (error) {
       console.log(error);
+      alert(error.response.data.error);
     }
   };
 
@@ -84,42 +85,6 @@ export const AuthProvider = ({ children }) => {
       }
     }
   };
-
-  // // get user details
-  // const getUserProfile = async (token) => {
-  //   console.log("getUserProfile");
-  //   try {
-  //     axios
-  //       .get(`${PROXY_URL}/api/auth/doctor/profile`, {
-  //         headers: {
-  //           "Access-Control-Allow-Origin": "*",
-  //           "Content-type": "Application/json",
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       })
-  //       .then((res) => {
-  //         let userInfo = res.data;
-  //         console.log("user info saved...");
-  //         saveUserInfoAsyncStorage(userInfo);
-  //         if (userInfo) {
-  //           setIsLoading(false);
-  //         }
-  //       })
-  //       .catch((error) => {
-  //         if (error.response) {
-  //           console.log(error.response.data.error);
-  //           setIsLoading(false);
-  //           return alert(error.response.data.error);
-  //         }
-  //       });
-  //   } catch (error) {
-  //     if (error.response) {
-  //       console.log(error.response.data);
-  //       setIsLoading(false);
-  //       return alert("Something went wrong..");
-  //     }
-  //   }
-  // };
 
   const registration = async (verified, mobile, password) => {
     setIsLoading(true);
@@ -169,6 +134,94 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateSettings = async (data) => {
+    setIsLoading(true);
+    try {
+      const resp = await axios.put(`${PROXY_URL}/api/doctors/settings`, data, {
+        headers: {
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      if (resp.data) {
+        saveUserInfoAsyncStorage(resp.data.user);
+        setIsLoading(false);
+        return alert(resp.data.success);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsLoading(false);
+      return alert("Something went wrong...");
+    }
+  };
+
+  const updateProfilePhoto = async (data) => {
+    // setIsLoading(true);
+    // try {
+    //   console.log("auth context....");
+    //   const resp = await axios.put(
+    //     `${PROXY_URL}/api/doctors/profile/photo`,
+    //     { photo: data },
+    //     {
+    //       headers: {
+    //         "Content-type": "Application/json",
+    //         Authorization: `Bearer ${userToken}`,
+    //       },
+    //     }
+    //   );
+    //   if (resp.data) {
+    //     console.log("auth success");
+    //     saveUserInfoAsyncStorage(resp.data.user);
+    //     setIsLoading(false);
+    //     return alert(resp.data.success);
+    //   }
+    // } catch (err) {
+    //   console.log("auth errpr");
+    //   console.error(err);
+    //   setIsLoading(false);
+    //   return alert("Something went wrong...");
+    // }
+  };
+
+  const updateEmergencyCallStatus = async (data) => {
+    setIsLoading(true);
+    try {
+      const resp = await axios.put(`${PROXY_URL}/api/emergency`, data, {
+        headers: {
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      if (resp.data) {
+        // saveUserInfoAsyncStorage(resp.data.user);
+        // setIsLoading(false);
+        return alert(resp.data);
+      }
+    } catch (err) {
+      console.error(err.message);
+      setIsLoading(false);
+      return alert("Something went wrong...");
+    }
+  };
+
+  const acceptEmergencyCall = async (data) => {
+    try {
+      const resp = await axios.put(`${PROXY_URL}/api/accept/emergency`, data, {
+        headers: {
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      if (resp) {
+        return alert(resp.status);
+      }
+    } catch (err) {
+      console.error(err.message);
+
+      return alert("Something went wrong...");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -180,6 +233,12 @@ export const AuthProvider = ({ children }) => {
         userToken,
         setUserInfo,
         updateProfile,
+        updateProfilePhoto,
+        image,
+        setImage,
+        updateSettings,
+        updateEmergencyCallStatus,
+        acceptEmergencyCall,
       }}
     >
       {children}

@@ -18,12 +18,14 @@ import {
   AntDesign,
   MaterialCommunityIcons,
   Fontisto,
+  FontAwesome5,
 } from "@expo/vector-icons";
 import { PROXY_URL } from "@env";
 import { AuthContext } from "../context/AuthContext";
 import SelectList from "react-native-dropdown-select-list";
 import TextInputWithLabel from "../components/TextInputWithLabel";
 import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
 
 const ProfileScreen = ({ navigation }) => {
   const [loaded] = useFonts({
@@ -31,10 +33,18 @@ const ProfileScreen = ({ navigation }) => {
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
 
-  const { userInfo, isLoading, userToken, updateProfile } =
-    useContext(AuthContext);
+  const {
+    userInfo,
+    isLoading,
+    updateProfile,
+    updateProfilePhoto,
+    image,
+    setImage,
+  } = useContext(AuthContext);
   const [mobile, setMobile] = useState(userInfo.mobile);
   const [fullName, setFullName] = useState(userInfo.fullName);
+  const [designation, setDesignation] = useState(userInfo.designation);
+
   const [zilla, setZilla] = useState("Dhaka");
   const [upzilla, setUpzilla] = useState("");
   const [thana, setThana] = useState("");
@@ -67,6 +77,46 @@ const ProfileScreen = ({ navigation }) => {
     { key: "4", value: "Chapai" },
   ];
 
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 4],
+      quality: 1,
+      base64: true,
+    });
+
+    if (!result.cancelled) {
+      setImage(result.uri);
+      updateProfilePhoto(result.uri);
+      // let base64Img = `data:image/jpg;base64,${result.base64}`;
+
+      // //Add your cloud name
+      // let apiUrl = "https://api.cloudinary.com/v1_1/technource/image/upload";
+
+      // let data = {
+      //   file: base64Img,
+      //   upload_preset: "rbyqqbqn",
+      // };
+
+      // fetch(apiUrl, {
+      //   body: JSON.stringify(data),
+      //   headers: {
+      //     "content-type": "application/json",
+      //   },
+      //   method: "POST",
+      // })
+      //   .then(async (r) => {
+      //     let data = await r.json();
+      //     console.log(data.secure_url);
+      //     return data.secure_url;
+      //   })
+      //   .catch((err) => console.log(err));
+      // updateProfilePhoto(base64ToUpload);
+    }
+  };
+
   const submitFormHandler = async () => {
     let data = {
       fullName,
@@ -74,6 +124,7 @@ const ProfileScreen = ({ navigation }) => {
       nid,
       presentAddressDetails,
       permanentAddressDetails,
+      designation,
     };
     updateProfile(data);
   };
@@ -87,7 +138,7 @@ const ProfileScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <ScrollView style={{ padding: 20 }}>
-        <TouchableOpacity onPress={() => {}}>
+        <TouchableOpacity onPress={pickImage}>
           <View
             style={{
               borderColor: COLORS.main,
@@ -102,7 +153,11 @@ const ProfileScreen = ({ navigation }) => {
             }}
           >
             <Image
-              source={require("../../assets/images/user-profile.jpg")}
+              source={
+                image
+                  ? { uri: image }
+                  : require("../../assets/images/user-profile.jpg")
+              }
               style={{
                 width: 100,
                 height: 100,
@@ -151,6 +206,20 @@ const ProfileScreen = ({ navigation }) => {
           }
           value={email}
           setValue={setEmail}
+          keyboardType="email-address"
+        />
+        <TextInputWithLabel
+          label="Designation"
+          icon={
+            <FontAwesome5
+              name="id-card-alt"
+              size={20}
+              color="#666"
+              style={{ marginRight: 5 }}
+            />
+          }
+          value={designation}
+          setValue={setDesignation}
           keyboardType="email-address"
         />
         <TextInputWithLabel

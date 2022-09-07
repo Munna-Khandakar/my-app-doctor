@@ -1,5 +1,5 @@
 import {
-  FlatList,
+  Image,
   ImageBackground,
   SafeAreaView,
   ScrollView,
@@ -17,28 +17,61 @@ import * as Location from "expo-location";
 import { PROXY_URL } from "@env";
 import io from "socket.io-client";
 import { AuthContext } from "../context/AuthContext";
+import COLORS from "../utils/Colors";
 const HomeScreen = ({ navigation }) => {
   const [loaded] = useFonts({
     "Roboto-Medium": require("../../assets/fonts/Roboto-Medium.ttf"),
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
-  const { userInfo, userToken } = useContext(AuthContext);
+  const { userInfo, updateEmergencyCallStatus, image, acceptEmergencyCall } =
+    useContext(AuthContext);
 
   // location variabls
   const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [doctorCall, setDoctorCall] = useState(false);
+  const [operationId, setOperationId] = useState("");
+  const [charge, setCharge] = useState("");
+  const [waiting, setWaiting] = useState(false);
 
-  // call handler
-  const callingEventHandler = () => {
-    //console.log("first");
-    alert("You have a call");
-  };
   const socket = io(`${PROXY_URL}`, { transports: ["websocket"] });
+
+  const handleEmergencyCall = (opId) => {
+    setDoctorCall(true);
+    setTimeout(() => {
+      if (doctorCall) {
+        setDoctorCall(false);
+        updateEmergencyCallStatus({ reason: "time out", operationId: opId });
+      }
+    }, 1000 * 15);
+  };
+
+  const rejectEmergencyCall = () => {
+    setDoctorCall(false);
+    updateEmergencyCallStatus({ reason: "call reject", operationId });
+  };
+
+  const acceptEmergencyCallHandler = () => {
+    setDoctorCall(false);
+    const response = acceptEmergencyCall({ operationId, location });
+    if (response) {
+      setWaiting(true);
+    }
+  };
+
   // socket setup
   useEffect(() => {
-    socket.on("connect", () => console.log("socketId: " + socket.id));
-    socket.on("emergencyDoctorCall", () => {
-      callingEventHandler();
+    // socket.on("connect", () => console.log("socketId: " + socket.id));
+    socket.emit("MapUserId", userInfo?._id);
+    socket.on("emergencyDoctorCall", (data) => {
+      setCharge(data.charge);
+      setOperationId(data.operationId);
+      handleEmergencyCall(data.operationId);
+    });
+    socket.on("emergencyCallDisconnect", () => {
+      console.log("emergencyCallDisconnect trigger");
+      setDoctorCall(false);
     });
   }, []);
   // location api
@@ -53,16 +86,22 @@ const HomeScreen = ({ navigation }) => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      //console.log("latitude of Doctor: " + location.coords.latitude);
-      //console.log("longitude Doctor: " + location.coords.longitude);
-      setLocation(location);
-      //console.log("_id: " + userInfo._id);
-      // if doctor is available for emergency...
-      // add conditions here
-      console.log("doctor ready for emergency...");
+      try {
+        setLocation(location);
+        const place = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        setAddress(place);
+      } catch (error) {
+        console.log(error);
+        setAddress(null);
+      }
+      console.log("Doctor is Ready for Emergency...");
       socket.emit("EmergencyDoctorAvaliable", {
-        socketId: socket.id,
         userId: userInfo._id,
+        socketId: socket.id,
+        charge: userInfo.charge,
         location: location.coords,
       });
     })();
@@ -87,23 +126,22 @@ const HomeScreen = ({ navigation }) => {
             flexDirection: "row",
           }}
         >
-          <Text
-            style={{
-              fontSize: 16,
-              fontFamily: "Roboto-Medium",
-              fontWeight: "bold",
-            }}
-          >
-            DOCTOR - MYAPP
-          </Text>
+          <Image
+            source={require("../../assets/header.png")}
+            style={{ height: 65, width: 150, resizeMode: "stretch" }}
+          />
           <TouchableOpacity
             onPress={() => {
               navigation.openDrawer();
             }}
           >
             <ImageBackground
-              source={require("../../assets/images/user-profile.jpg")}
-              style={{ width: 35, height: 35 }}
+              source={
+                image
+                  ? { uri: image }
+                  : require("../../assets/images/user-profile.jpg")
+              }
+              style={{ width: 45, height: 45 }}
               imageStyle={{ borderRadius: 25 }}
             />
           </TouchableOpacity>
@@ -126,32 +164,116 @@ const HomeScreen = ({ navigation }) => {
             color="#C6C6C6"
             style={{ marginEnd: 5 }}
           />
-
-          <TextInput placeholder="Mirpur DOHS, Mirpur 12, Dhaka" />
-        </View>
-        <TouchableOpacity
-          style={{
-            flexDirection: "row",
-            borderColor: "#F37878",
-            borderWidth: 1,
-            paddingHorizontal: 10,
-            paddingVertical: 8,
-            borderRadius: 8,
-            marginBottom: 10,
-            marginTop: 10,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <MaterialIcons
-            name="medical-services"
-            size={20}
-            color="#F37878"
-            style={{ marginEnd: 5 }}
+          <TextInput
+            placeholder={
+              !address
+                ? "Waiting"
+                : `${address[0]["street"]}, ${address[0]["district"]}, ${address[0]["city"]}, ${address[0]["postalCode"]}`
+            }
           />
+        </View>
 
-          <Text style={{ textAlign: "center", color: "#F37878" }}>ACCEPT</Text>
-        </TouchableOpacity>
+        {doctorCall && (
+          <View
+            style={{
+              flexDirection: "column",
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              marginBottom: 10,
+              marginTop: 10,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Image
+              source={require("../../assets/ring.gif")}
+              style={{ height: 350, width: 300, resizeMode: "stretch" }}
+            />
+            <Text>Charge of this request is {`${charge} taka `}</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <TouchableOpacity onPress={rejectEmergencyCall}>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: COLORS.main,
+                    fontWeight: "900",
+                    borderWidth: 1,
+                    borderColor: COLORS.main,
+                    borderRadius: 8,
+                    padding: 20,
+                    margin: 10,
+                  }}
+                >
+                  CANCEL
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={acceptEmergencyCallHandler}>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: "white",
+                    fontWeight: "900",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    backgroundColor: COLORS.main,
+                    padding: 20,
+                    margin: 10,
+                  }}
+                >
+                  ACCEPT
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {waiting && (
+          <View
+            style={{
+              flexDirection: "column",
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              marginBottom: 10,
+              marginTop: 10,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Image
+              source={require("../../assets/wait.gif")}
+              style={{ height: 500, resizeMode: "stretch" }}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <TouchableOpacity onPress={() => setWaiting(false)}>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: "white",
+                    fontWeight: "900",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    backgroundColor: COLORS.main,
+                    padding: 20,
+                    margin: 10,
+                  }}
+                >
+                  OK, WAITING
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
