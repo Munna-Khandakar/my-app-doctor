@@ -8,6 +8,7 @@ import CustomDrawer from "../components/CustomDrawer";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import COLORS from "../utils/Colors";
+import DemoScreen from "../screens/DemoScreen";
 const Drawer = createDrawerNavigator();
 
 const AppStack = () => {
@@ -36,6 +37,7 @@ const AppStack = () => {
       <Drawer.Screen
         name="Home"
         component={HomeScreen}
+        // component={DemoScreen}
         options={{
           drawerIcon: ({ color }) => (
             <Ionicons name="md-home-outline" size={22} color={color} />

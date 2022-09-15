@@ -9,22 +9,72 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  Button,
 } from "react-native";
 import { useFonts } from "expo-font";
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { PROXY_URL } from "@env";
 import io from "socket.io-client";
 import { AuthContext } from "../context/AuthContext";
 import COLORS from "../utils/Colors";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Audio } from "expo-av";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+async function registerForPushNotificationsAsync() {
+  let token;
+  if (Device.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      alert("Failed to get push token for push notification!");
+      return;
+    }
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log(token);
+  } else {
+    alert("Must use physical device for Push Notifications");
+  }
+
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  return token;
+}
+
 const HomeScreen = ({ navigation }) => {
   const [loaded] = useFonts({
     "Roboto-Medium": require("../../assets/fonts/Roboto-Medium.ttf"),
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
-  const { userInfo, updateEmergencyCallStatus, image, acceptEmergencyCall } =
-    useContext(AuthContext);
+  const {
+    userInfo,
+    updateEmergencyCallStatus,
+    image,
+    acceptEmergencyCall,
+    updateExpoPushToken,
+  } = useContext(AuthContext);
 
   // location variabls
   const [location, setLocation] = useState(null);
@@ -34,14 +84,85 @@ const HomeScreen = ({ navigation }) => {
   const [operationId, setOperationId] = useState("");
   const [charge, setCharge] = useState("");
   const [waiting, setWaiting] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [notification, setNotification] = useState(false);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+  const [sound, setSound] = useState();
+
+  // notifications
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      setExpoPushToken(token);
+      updateExpoPushToken({ expoPushToken: token, _id: userInfo._id });
+    });
+
+    // This listener is fired whenever a notification is received while the app is foregrounded
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    // This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
+
+  // audio
+  async function playSound() {
+    try {
+      console.log("Setting up Sound");
+      // await Audio.setAudioModeAsync({
+      //   staysActiveInBackground: true,
+      //   interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+      //   shouldDuckAndroid: true,
+      //   playThroughEarpieceAndroid: true,
+      //   allowsRecordingIOS: true,
+      //   // interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+      //   playsInSilentModeIOS: true,
+      // });
+      console.log("Loading Sound");
+      const { sound } = await Audio.Sound.createAsync(
+        require("../../assets/ringtone.mp3"),
+        { shouldPlay: true, staysActiveInBackground: true }
+      );
+      setSound(sound);
+
+      console.log("Playing Sound");
+      await sound.playAsync();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  React.useEffect(() => {
+    return sound
+      ? () => {
+          console.log("Unloading Sound");
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
 
   const socket = io(`${PROXY_URL}`, { transports: ["websocket"] });
 
   const handleEmergencyCall = (opId) => {
     setDoctorCall(true);
     setTimeout(() => {
+      setSound(null);
       if (doctorCall) {
         setDoctorCall(false);
+        console.log(doctorCall);
+        console.log("time out");
         updateEmergencyCallStatus({ reason: "time out", operationId: opId });
       }
     }, 1000 * 15);
@@ -49,11 +170,13 @@ const HomeScreen = ({ navigation }) => {
 
   const rejectEmergencyCall = () => {
     setDoctorCall(false);
+    setSound(null);
     updateEmergencyCallStatus({ reason: "call reject", operationId });
   };
 
   const acceptEmergencyCallHandler = () => {
     setDoctorCall(false);
+    setSound(null);
     const response = acceptEmergencyCall({ operationId, location });
     if (response) {
       setWaiting(true);
@@ -67,6 +190,7 @@ const HomeScreen = ({ navigation }) => {
     socket.on("emergencyDoctorCall", (data) => {
       setCharge(data.charge);
       setOperationId(data.operationId);
+      playSound();
       handleEmergencyCall(data.operationId);
     });
     socket.on("emergencyCallDisconnect", () => {
@@ -98,6 +222,7 @@ const HomeScreen = ({ navigation }) => {
         setAddress(null);
       }
       console.log("Doctor is Ready for Emergency...");
+
       socket.emit("EmergencyDoctorAvaliable", {
         userId: userInfo._id,
         socketId: socket.id,

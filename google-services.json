@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "508599029315",
+    "project_id": "ukilbabu",
+    "storage_bucket": "ukilbabu.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:508599029315:android:e0dec2f0d435e3909c4ef6",
+        "android_client_info": {
+          "package_name": "com.ukilbabuTest.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "508599029315-ft18iea9dqfin8k6jeeu3hvsfnsds1tt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUmZjtjcSl34W1KQMr7TaVVYzQQEpHymw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "508599029315-ft18iea9dqfin8k6jeeu3hvsfnsds1tt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

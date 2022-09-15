@@ -222,6 +222,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateExpoPushToken = async (data) => {
+    try {
+      const resp = await axios.put(
+        `${PROXY_URL}/api/token/expoPushToken`,
+        data,
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if (resp) {
+        console.log("ExpoPushToken Updated");
+        return null;
+      }
+    } catch (error) {
+      console.error(error.message);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -239,6 +261,7 @@ export const AuthProvider = ({ children }) => {
         updateSettings,
         updateEmergencyCallStatus,
         acceptEmergencyCall,
+        updateExpoPushToken,
       }}
     >
       {children}
