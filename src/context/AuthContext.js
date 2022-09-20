@@ -156,31 +156,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfilePhoto = async (data) => {
-    // setIsLoading(true);
-    // try {
-    //   console.log("auth context....");
-    //   const resp = await axios.put(
-    //     `${PROXY_URL}/api/doctors/profile/photo`,
-    //     { photo: data },
-    //     {
-    //       headers: {
-    //         "Content-type": "Application/json",
-    //         Authorization: `Bearer ${userToken}`,
-    //       },
-    //     }
-    //   );
-    //   if (resp.data) {
-    //     console.log("auth success");
-    //     saveUserInfoAsyncStorage(resp.data.user);
-    //     setIsLoading(false);
-    //     return alert(resp.data.success);
-    //   }
-    // } catch (err) {
-    //   console.log("auth errpr");
-    //   console.error(err);
-    //   setIsLoading(false);
-    //   return alert("Something went wrong...");
-    // }
+    setIsLoading(true);
+    try {
+      console.log("auth context....");
+      const resp = await axios.put(
+        `${PROXY_URL}/api/doctors/profile/photo`,
+        { photo: data },
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if (resp.data) {
+        saveUserInfoAsyncStorage(resp.data.user);
+        setIsLoading(false);
+        return alert(resp.data.success);
+      }
+    } catch (err) {
+      console.log("auth errpr");
+      console.error(err);
+      setIsLoading(false);
+      return alert("Something went wrong...");
+    }
   };
 
   const updateEmergencyCallStatus = async (data) => {

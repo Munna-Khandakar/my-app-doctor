@@ -262,8 +262,8 @@ const HomeScreen = ({ navigation }) => {
           >
             <ImageBackground
               source={
-                image
-                  ? { uri: image }
+                userInfo.photo
+                  ? { uri: userInfo.photo }
                   : require("../../assets/images/user-profile.jpg")
               }
               style={{ width: 45, height: 45 }}

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import COLORS from "../utils/Colors";
+import { CLOUDINARY_NAME, CLOUDINARY_PRESET } from "@env";
 import { useFonts } from "expo-font";
 import React, { useState, useContext } from "react";
 import {
@@ -44,7 +45,7 @@ const ProfileScreen = ({ navigation }) => {
   const [mobile, setMobile] = useState(userInfo.mobile);
   const [fullName, setFullName] = useState(userInfo.fullName);
   const [designation, setDesignation] = useState(userInfo.designation);
-
+  const [editStatus, setEditStatus] = useState(false);
   const [zilla, setZilla] = useState("Dhaka");
   const [upzilla, setUpzilla] = useState("");
   const [thana, setThana] = useState("");
@@ -89,31 +90,30 @@ const ProfileScreen = ({ navigation }) => {
 
     if (!result.cancelled) {
       setImage(result.uri);
-      updateProfilePhoto(result.uri);
-      // let base64Img = `data:image/jpg;base64,${result.base64}`;
+      //updateProfilePhoto(result.uri);
+      let base64Img = `data:image/jpg;base64,${result.base64}`;
 
-      // //Add your cloud name
-      // let apiUrl = "https://api.cloudinary.com/v1_1/technource/image/upload";
+      //Add your cloud name
+      let apiUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`;
 
-      // let data = {
-      //   file: base64Img,
-      //   upload_preset: "rbyqqbqn",
-      // };
+      let data = {
+        file: base64Img,
+        upload_preset: `${CLOUDINARY_PRESET}`,
+      };
 
-      // fetch(apiUrl, {
-      //   body: JSON.stringify(data),
-      //   headers: {
-      //     "content-type": "application/json",
-      //   },
-      //   method: "POST",
-      // })
-      //   .then(async (r) => {
-      //     let data = await r.json();
-      //     console.log(data.secure_url);
-      //     return data.secure_url;
-      //   })
-      //   .catch((err) => console.log(err));
-      // updateProfilePhoto(base64ToUpload);
+      fetch(apiUrl, {
+        body: JSON.stringify(data),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      })
+        .then(async (r) => {
+          let data = await r.json();
+          updateProfilePhoto(data.secure_url);
+          return null;
+        })
+        .catch((err) => console.log(err));
     }
   };
 
@@ -126,6 +126,7 @@ const ProfileScreen = ({ navigation }) => {
       permanentAddressDetails,
       designation,
     };
+    setEditStatus(false);
     updateProfile(data);
   };
 
@@ -154,8 +155,8 @@ const ProfileScreen = ({ navigation }) => {
           >
             <Image
               source={
-                image
-                  ? { uri: image }
+                userInfo.photo
+                  ? { uri: userInfo.photo }
                   : require("../../assets/images/user-profile.jpg")
               }
               style={{
@@ -166,7 +167,19 @@ const ProfileScreen = ({ navigation }) => {
             />
           </View>
         </TouchableOpacity>
-
+        <TouchableOpacity
+          style={{
+            marginRight: 5,
+            alignSelf: "flex-end",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "row",
+          }}
+          onPress={() => setEditStatus(!editStatus)}
+        >
+          <FontAwesome name="edit" size={20} color="#666" />
+          <Text style={{ marginLeft: 10 }}>Edit</Text>
+        </TouchableOpacity>
         <TextInputWithLabel
           label="Full Name"
           icon={
@@ -179,9 +192,11 @@ const ProfileScreen = ({ navigation }) => {
           }
           value={fullName}
           setValue={setFullName}
+          editPermission={editStatus}
         />
         <TextInputWithLabel
           label="Mobile"
+          editPermission={editStatus}
           icon={
             <MaterialIcons
               name="phone"
@@ -195,6 +210,7 @@ const ProfileScreen = ({ navigation }) => {
           keyboardType="phone-pad"
         />
         <TextInputWithLabel
+          editPermission={editStatus}
           label="Email"
           icon={
             <MaterialIcons
@@ -209,6 +225,7 @@ const ProfileScreen = ({ navigation }) => {
           keyboardType="email-address"
         />
         <TextInputWithLabel
+          editPermission={editStatus}
           label="Designation"
           icon={
             <FontAwesome5
@@ -224,6 +241,7 @@ const ProfileScreen = ({ navigation }) => {
         />
         <TextInputWithLabel
           label="NID"
+          editPermission={editStatus}
           icon={
             <AntDesign
               name="idcard"
@@ -238,7 +256,7 @@ const ProfileScreen = ({ navigation }) => {
         />
 
         {/* present address  */}
-        <Text
+        {/* <Text
           style={{
             fontFamily: "Roboto-Medium",
             fontSize: 15,
@@ -306,9 +324,10 @@ const ProfileScreen = ({ navigation }) => {
             // search={false}
             //  onSelect={() => alert(selected)}
           />
-        </View>
+        </View> */}
         <TextInputWithLabel
           label="Present Address Details"
+          editPermission={editStatus}
           icon={
             <MaterialCommunityIcons
               name="home-city-outline"
@@ -322,7 +341,7 @@ const ProfileScreen = ({ navigation }) => {
         />
 
         {/* permanent address  */}
-        <Text
+        {/* <Text
           style={{
             fontFamily: "Roboto-Medium",
             fontSize: 15,
@@ -390,9 +409,10 @@ const ProfileScreen = ({ navigation }) => {
             // search={false}
             //  onSelect={() => alert(selected)}
           />
-        </View>
+        </View> */}
         <TextInputWithLabel
           label="Permanent Address Details"
+          editPermission={editStatus}
           icon={
             <Fontisto
               name="holiday-village"
@@ -404,19 +424,9 @@ const ProfileScreen = ({ navigation }) => {
           value={permanentAddressDetails}
           setValue={setPermanentAddressDetails}
         />
-        <TouchableOpacity
-          onPress={submitFormHandler}
-          style={{
-            flex: 1,
-            backgroundColor: COLORS.main,
-            padding: 20,
-            borderRadius: 10,
-            marginBottom: 30,
-          }}
-        >
-          {isLoading ? (
-            <ActivityIndicator />
-          ) : (
+
+        {!editStatus ? (
+          <TouchableOpacity disabled={true}>
             <Text
               style={{
                 textAlign: "center",
@@ -426,8 +436,33 @@ const ProfileScreen = ({ navigation }) => {
             >
               Save
             </Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={submitFormHandler}
+            style={{
+              flex: 1,
+              backgroundColor: COLORS.main,
+              padding: 20,
+              borderRadius: 10,
+              marginBottom: 30,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator />
+            ) : (
+              <Text
+                style={{
+                  textAlign: "center",
+                  fontWeight: "700",
+                  color: "white",
+                }}
+              >
+                Save
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
