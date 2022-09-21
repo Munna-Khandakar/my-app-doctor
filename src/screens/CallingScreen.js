@@ -15,8 +15,8 @@ const CallingScreen = ({ charge, setSound, location }) => {
     setOperationId,
     operationId,
     operationStatus,
-    setOperationStatus,
     setOperationStatusHandler,
+    checkPayment,
   } = useContext(AuthContext);
 
   const acceptEmergencyCallHandler = async () => {

@@ -22,9 +22,9 @@ import COLORS from "../utils/Colors";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CallingScreen from "./CallingScreen";
 import WaitingScreen from "./WaitingScreen";
+import NavigationScreen from "./NavigationScreen";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -78,10 +78,9 @@ const HomeScreen = ({ navigation }) => {
     acceptEmergencyCall,
     updateExpoPushToken,
     updateLocation,
-    setOperationId,
+    setOperationIdHandler,
     operationId,
     operationStatus,
-    setOperationStatus,
     setOperationStatusHandler,
   } = useContext(AuthContext);
 
@@ -180,7 +179,7 @@ const HomeScreen = ({ navigation }) => {
     socket.emit("MapUserId", userInfo?._id);
     socket.on("emergencyDoctorCall", (data) => {
       setCharge(data.charge);
-      setOperationId(data.operationId);
+      setOperationIdHandler(data.operationId);
       playSound();
       handleEmergencyCall(data.operationId);
     });
@@ -244,6 +243,8 @@ const HomeScreen = ({ navigation }) => {
         );
       case "waiting":
         return <WaitingScreen />;
+      case "readyToGo":
+        return <NavigationScreen />;
       default:
         return <Text>No call</Text>;
     }

@@ -10,10 +10,14 @@ export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [image, setImage] = useState("");
-  const [operationId, setOperationId] = useState("");
+  const [operationId, setOperationId] = useState(null);
   const [operationStatus, setOperationStatus] = useState(null);
+  const [clientLocation, setClientLocation] = useState(null);
   useEffect(() => {
     isLoggedIn();
+    // removeOperationIdHandler();
+    // removeOperationStatusHandler();
+    // removeClientLocationHandler();
   }, []);
 
   async function saveSecureData(key, value) {
@@ -72,6 +76,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const setOperationStatusHandler = async (status) => {
+    console.log(status);
     setOperationStatus(status);
     await AsyncStorage.setItem("operationStatus", status);
   };
@@ -79,6 +84,26 @@ export const AuthProvider = ({ children }) => {
   const removeOperationStatusHandler = async () => {
     setOperationStatus(null);
     await AsyncStorage.removeItem("operationStatus");
+  };
+
+  const setOperationIdHandler = async (id) => {
+    setOperationId(id);
+    await AsyncStorage.setItem("operationId", id);
+  };
+
+  const removeOperationIdHandler = async () => {
+    setOperationId(null);
+    await AsyncStorage.removeItem("operationId");
+  };
+
+  const setClientLocationHandler = async (location) => {
+    setClientLocation(location);
+    await AsyncStorage.setItem("clientLocation", JSON.stringify(location));
+  };
+
+  const removeClientLocationHandler = async () => {
+    setClientLocation(null);
+    await AsyncStorage.removeItem("clientLocation");
   };
 
   const isLoggedIn = async () => {
@@ -90,6 +115,8 @@ export const AuthProvider = ({ children }) => {
       setUserToken(userToken);
       let operationStatus = await AsyncStorage.getItem("operationStatus");
       setOperationStatus(operationStatus);
+      let operationId = await AsyncStorage.getItem("operationId");
+      setOperationId(operationId);
       setIsLoading(false);
     } catch (error) {
       if (error.response) {
@@ -279,6 +306,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkPayment = async () => {
+    try {
+      console.log("checking the payment");
+      const res = await axios.post(
+        `${PROXY_URL}/api/doctors/check/payment`,
+        { operationId },
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      console.log(res.data.operationStatus);
+      if (res.data.operationStatus === "payment completed") {
+        await setOperationStatusHandler("readyToGo");
+        await setClientLocationHandler(res.data.ukilLocation.coords);
+        return null;
+      }
+    } catch (error) {
+      console.log(error);
+      return alert("Something went wrong");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -298,11 +350,11 @@ export const AuthProvider = ({ children }) => {
         acceptEmergencyCall,
         updateExpoPushToken,
         updateLocation,
-        setOperationId,
+        setOperationIdHandler,
         operationId,
         operationStatus,
-        setOperationStatus,
         setOperationStatusHandler,
+        checkPayment,
       }}
     >
       {children}
