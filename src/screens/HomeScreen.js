@@ -22,6 +22,9 @@ import COLORS from "../utils/Colors";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import CallingScreen from "./CallingScreen";
+import WaitingScreen from "./WaitingScreen";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -74,16 +77,19 @@ const HomeScreen = ({ navigation }) => {
     image,
     acceptEmergencyCall,
     updateExpoPushToken,
+    updateLocation,
+    setOperationId,
+    operationId,
+    operationStatus,
+    setOperationStatus,
+    setOperationStatusHandler,
   } = useContext(AuthContext);
 
   // location variabls
   const [location, setLocation] = useState(null);
   const [address, setAddress] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [doctorCall, setDoctorCall] = useState(false);
-  const [operationId, setOperationId] = useState("");
   const [charge, setCharge] = useState("");
-  const [waiting, setWaiting] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState("");
   const [notification, setNotification] = useState(false);
   const notificationListener = useRef();
@@ -101,6 +107,7 @@ const HomeScreen = ({ navigation }) => {
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         setNotification(notification);
+        console.log("notification received in foreground");
       });
 
     // This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
@@ -156,31 +163,15 @@ const HomeScreen = ({ navigation }) => {
   const socket = io(`${PROXY_URL}`, { transports: ["websocket"] });
 
   const handleEmergencyCall = (opId) => {
-    setDoctorCall(true);
+    setOperationStatusHandler("calling");
     setTimeout(() => {
       setSound(null);
-      if (doctorCall) {
-        setDoctorCall(false);
-        console.log(doctorCall);
+      if (operationStatus == "calling") {
+        setOperationStatusHandler(null);
         console.log("time out");
         updateEmergencyCallStatus({ reason: "time out", operationId: opId });
       }
     }, 1000 * 15);
-  };
-
-  const rejectEmergencyCall = () => {
-    setDoctorCall(false);
-    setSound(null);
-    updateEmergencyCallStatus({ reason: "call reject", operationId });
-  };
-
-  const acceptEmergencyCallHandler = () => {
-    setDoctorCall(false);
-    setSound(null);
-    const response = acceptEmergencyCall({ operationId, location });
-    if (response) {
-      setWaiting(true);
-    }
   };
 
   // socket setup
@@ -195,7 +186,7 @@ const HomeScreen = ({ navigation }) => {
     });
     socket.on("emergencyCallDisconnect", () => {
       console.log("emergencyCallDisconnect trigger");
-      setDoctorCall(false);
+      setOperationStatusHandler(null);
     });
   }, []);
   // location api
@@ -222,7 +213,7 @@ const HomeScreen = ({ navigation }) => {
         setAddress(null);
       }
       console.log("Doctor is Ready for Emergency...");
-
+      updateLocation({ location: location.coords });
       socket.emit("EmergencyDoctorAvaliable", {
         userId: userInfo._id,
         socketId: socket.id,
@@ -240,6 +231,23 @@ const HomeScreen = ({ navigation }) => {
       <ActivityIndicator size={"large"} />
     </View>;
   }
+
+  const HomeScreenHandler = () => {
+    switch (operationStatus) {
+      case "calling":
+        return (
+          <CallingScreen
+            setSound={setSound}
+            charge={charge}
+            location={location}
+          />
+        );
+      case "waiting":
+        return <WaitingScreen />;
+      default:
+        return <Text>No call</Text>;
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
@@ -297,8 +305,8 @@ const HomeScreen = ({ navigation }) => {
             }
           />
         </View>
-
-        {doctorCall && (
+        <HomeScreenHandler />
+        {/* {doctorCall && (
           <View
             style={{
               flexDirection: "column",
@@ -356,8 +364,8 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-        )}
-        {waiting && (
+        )} */}
+        {/* {waiting && (
           <View
             style={{
               flexDirection: "column",
@@ -398,7 +406,7 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-        )}
+        )} */}
       </ScrollView>
     </SafeAreaView>
   );

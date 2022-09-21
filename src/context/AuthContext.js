@@ -10,6 +10,8 @@ export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [image, setImage] = useState("");
+  const [operationId, setOperationId] = useState("");
+  const [operationStatus, setOperationStatus] = useState(null);
   useEffect(() => {
     isLoggedIn();
   }, []);
@@ -69,6 +71,16 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   };
 
+  const setOperationStatusHandler = async (status) => {
+    setOperationStatus(status);
+    await AsyncStorage.setItem("operationStatus", status);
+  };
+
+  const removeOperationStatusHandler = async () => {
+    setOperationStatus(null);
+    await AsyncStorage.removeItem("operationStatus");
+  };
+
   const isLoggedIn = async () => {
     try {
       setIsLoading(true);
@@ -76,6 +88,8 @@ export const AuthProvider = ({ children }) => {
       setUserInfo(userInfo);
       let userToken = await SecureStore.getItemAsync("userToken");
       setUserToken(userToken);
+      let operationStatus = await AsyncStorage.getItem("operationStatus");
+      setOperationStatus(operationStatus);
       setIsLoading(false);
     } catch (error) {
       if (error.response) {
@@ -182,6 +196,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateLocation = async (location) => {
+    console.log(location);
+    try {
+      const resp = await axios.put(
+        `${PROXY_URL}/api/doctors/location`,
+        location,
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if (resp.data) {
+        return null;
+      }
+    } catch (err) {
+      console.log(err);
+      console.log("error while updating location");
+      return alert("Something went wrong...");
+    }
+  };
+
   const updateEmergencyCallStatus = async (data) => {
     setIsLoading(true);
     try {
@@ -192,9 +229,8 @@ export const AuthProvider = ({ children }) => {
         },
       });
       if (resp.data) {
-        // saveUserInfoAsyncStorage(resp.data.user);
-        // setIsLoading(false);
-        return alert(resp.data);
+        console.log(resp.data);
+        return null;
       }
     } catch (err) {
       console.error(err.message);
@@ -261,6 +297,12 @@ export const AuthProvider = ({ children }) => {
         updateEmergencyCallStatus,
         acceptEmergencyCall,
         updateExpoPushToken,
+        updateLocation,
+        setOperationId,
+        operationId,
+        operationStatus,
+        setOperationStatus,
+        setOperationStatusHandler,
       }}
     >
       {children}
