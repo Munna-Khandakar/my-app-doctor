@@ -25,6 +25,7 @@ import { Audio } from "expo-av";
 import CallingScreen from "./CallingScreen";
 import WaitingScreen from "./WaitingScreen";
 import NavigationScreen from "./NavigationScreen";
+import ReviewScreen from "./ReviewScreen";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -244,7 +245,10 @@ const HomeScreen = ({ navigation }) => {
       case "waiting":
         return <WaitingScreen />;
       case "readyToGo":
+        // return <ReviewScreen />;
         return <NavigationScreen />;
+      case "review":
+        return <ReviewScreen />;
       default:
         return <Text>No call</Text>;
     }

@@ -12,12 +12,12 @@ export const AuthProvider = ({ children }) => {
   const [image, setImage] = useState("");
   const [operationId, setOperationId] = useState(null);
   const [operationStatus, setOperationStatus] = useState(null);
-  const [clientLocation, setClientLocation] = useState(null);
+  const [clientInfo, setClientInfo] = useState(null);
   useEffect(() => {
     isLoggedIn();
     // removeOperationIdHandler();
     // removeOperationStatusHandler();
-    // removeClientLocationHandler();
+    // removeClientInfoHandler();
   }, []);
 
   async function saveSecureData(key, value) {
@@ -76,7 +76,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const setOperationStatusHandler = async (status) => {
-    console.log(status);
     setOperationStatus(status);
     await AsyncStorage.setItem("operationStatus", status);
   };
@@ -96,14 +95,14 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.removeItem("operationId");
   };
 
-  const setClientLocationHandler = async (location) => {
-    setClientLocation(location);
-    await AsyncStorage.setItem("clientLocation", JSON.stringify(location));
+  const setClientInfoHandler = async (details) => {
+    setClientInfo(details);
+    await AsyncStorage.setItem("clientInfo", JSON.stringify(details));
   };
 
-  const removeClientLocationHandler = async () => {
-    setClientLocation(null);
-    await AsyncStorage.removeItem("clientLocation");
+  const removeClientInfoHandler = async () => {
+    setClientInfo(null);
+    await AsyncStorage.removeItem("clientInfo");
   };
 
   const isLoggedIn = async () => {
@@ -117,6 +116,8 @@ export const AuthProvider = ({ children }) => {
       setOperationStatus(operationStatus);
       let operationId = await AsyncStorage.getItem("operationId");
       setOperationId(operationId);
+      let clientInfo = JSON.parse(await AsyncStorage.getItem("clientInfo"));
+      setClientInfo(clientInfo);
       setIsLoading(false);
     } catch (error) {
       if (error.response) {
@@ -308,7 +309,6 @@ export const AuthProvider = ({ children }) => {
 
   const checkPayment = async () => {
     try {
-      console.log("checking the payment");
       const res = await axios.post(
         `${PROXY_URL}/api/doctors/check/payment`,
         { operationId },
@@ -322,7 +322,7 @@ export const AuthProvider = ({ children }) => {
       console.log(res.data.operationStatus);
       if (res.data.operationStatus === "payment completed") {
         await setOperationStatusHandler("readyToGo");
-        await setClientLocationHandler(res.data.ukilLocation.coords);
+        await setClientInfoHandler(res.data);
         return null;
       }
     } catch (error) {
@@ -331,6 +331,58 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeOperationHandler = async () => {
+    try {
+      const res = await axios.post(
+        `${PROXY_URL}/api/doctors/complete/operation`,
+        { operationId },
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if (res.data.operationStatus === "success") {
+        await setOperationStatusHandler("review");
+        return null;
+      }
+    } catch (error) {
+      console.log(error);
+      return alert("Something went wrong");
+    }
+  };
+
+  const userReviewHandler = async () => {
+    try {
+      const res = await axios.post(
+        `${PROXY_URL}/api/doctors/review`,
+        { id: clientInfo },
+        {
+          headers: {
+            "Content-type": "Application/json",
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+      if (res) {
+        removeOperationIdHandler();
+        removeOperationStatusHandler();
+        removeClientInfoHandler();
+        return null;
+      }
+    } catch (error) {
+      console.log(error);
+      return alert("Something went wrong");
+    }
+  };
+
+  const skipUserReviewHandler = () => {
+    removeOperationIdHandler();
+    removeOperationStatusHandler();
+    removeClientInfoHandler();
+    isLoggedIn();
+  };
   return (
     <AuthContext.Provider
       value={{
@@ -355,6 +407,10 @@ export const AuthProvider = ({ children }) => {
         operationStatus,
         setOperationStatusHandler,
         checkPayment,
+        clientInfo,
+        completeOperationHandler,
+        userReviewHandler,
+        skipUserReviewHandler,
       }}
     >
       {children}
