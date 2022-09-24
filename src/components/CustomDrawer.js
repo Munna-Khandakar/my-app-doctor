@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
@@ -17,10 +17,33 @@ import { AuthContext } from "../context/AuthContext";
 import COLORS from "../utils/Colors";
 
 const CustomDrawer = (props) => {
-  const { logout, userInfo, image } = useContext(AuthContext);
+  const { logout, userInfo, getMyRatings } = useContext(AuthContext);
+  const [myRatings, setMyRatings] = useState(0);
   const [loaded] = useFonts({
     Montserrat: require("../../assets/fonts/Montserrat.ttf"),
   });
+  useEffect(() => {
+    const updaterattings = async () => {
+      const r = await getMyRatings();
+      setMyRatings(r);
+    };
+    updaterattings();
+  });
+
+  const UserRatings = () => {
+    const rows = [];
+    for (let i = 1; i < myRatings + 1; i++) {
+      rows.push(
+        <MaterialIcons name="star-rate" size={20} color="white" key={i} />
+      );
+    }
+    for (let i = myRatings + 1; i < 6; i++) {
+      rows.push(
+        <MaterialIcons name="star-outline" size={20} color="white" key={i} />
+      );
+    }
+    return rows;
+  };
 
   if (!loaded) {
     return null;
@@ -65,11 +88,7 @@ const CustomDrawer = (props) => {
               width: 120,
             }}
           >
-            <MaterialIcons name="star-rate" size={20} color="white" />
-            <MaterialIcons name="star-rate" size={20} color="white" />
-            <MaterialIcons name="star-rate" size={20} color="white" />
-            <MaterialIcons name="star-half" size={20} color="white" />
-            <MaterialIcons name="star-outline" size={20} color="white" />
+            {myRatings ? <UserRatings /> : <Text>Calculating</Text>}
           </View>
         </ImageBackground>
         <View style={{ flex: 1, backgroundColor: "white", paddingTop: 10 }}>

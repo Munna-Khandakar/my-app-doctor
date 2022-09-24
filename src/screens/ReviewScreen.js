@@ -13,9 +13,18 @@ import { AuthContext } from "../context/AuthContext";
 
 const ReviewScreen = () => {
   const [ratings, setRatings] = useState(0);
-  const { userReviewHandler, skipUserReviewHandlernfo, clientInfo } =
+  const [review, setReview] = useState("");
+  const { userReviewHandler, skipUserReviewHandler, clientInfo } =
     useContext(AuthContext);
 
+  const handleSubmit = () => {
+    const data = {
+      receiverId: clientInfo.clientId._id,
+      ratings,
+      review,
+    };
+    userReviewHandler(data);
+  };
   const UserRatings = () => {
     const rows = [];
     for (let i = 1; i < ratings + 1; i++) {
@@ -70,9 +79,8 @@ const ReviewScreen = () => {
           borderColor: COLORS.light,
           borderRadius: 8,
         }}
-        keyboardType={"default"}
-        // value={value}
-        // onChangeText={(number) => setValue(number)}
+        value={review}
+        onChangeText={(txt) => setReview(txt)}
       />
       <View
         style={{
@@ -82,7 +90,7 @@ const ReviewScreen = () => {
         }}
       >
         <TouchableOpacity
-          onPress={skipUserReviewHandlernfo}
+          onPress={skipUserReviewHandler}
           style={{
             flex: 1,
 
@@ -105,7 +113,7 @@ const ReviewScreen = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={userReviewHandler}
+          onPress={handleSubmit}
           style={{
             flex: 1,
             backgroundColor: COLORS.main,

@@ -9,12 +9,14 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
+
   const [image, setImage] = useState("");
   const [operationId, setOperationId] = useState(null);
   const [operationStatus, setOperationStatus] = useState(null);
   const [clientInfo, setClientInfo] = useState(null);
   useEffect(() => {
     isLoggedIn();
+
     // removeOperationIdHandler();
     // removeOperationStatusHandler();
     // removeClientInfoHandler();
@@ -353,23 +355,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const userReviewHandler = async () => {
+  const userReviewHandler = async (data) => {
     try {
-      const res = await axios.post(
-        `${PROXY_URL}/api/doctors/review`,
-        { id: clientInfo },
-        {
-          headers: {
-            "Content-type": "Application/json",
-            Authorization: `Bearer ${userToken}`,
-          },
-        }
-      );
+      const res = await axios.post(`${PROXY_URL}/api/doctors/review`, data, {
+        headers: {
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
       if (res) {
         removeOperationIdHandler();
         removeOperationStatusHandler();
         removeClientInfoHandler();
-        return null;
+        return alert(res.data);
       }
     } catch (error) {
       console.log(error);
@@ -377,11 +375,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const skipUserReviewHandler = () => {
+  const skipUserReviewHandler = async () => {
     removeOperationIdHandler();
     removeOperationStatusHandler();
     removeClientInfoHandler();
     isLoggedIn();
+  };
+
+  const getMyRatings = async () => {
+    try {
+      const res = await axios.get(`${PROXY_URL}/api/doctors/myratings`, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-type": "Application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <AuthContext.Provider
@@ -411,6 +424,7 @@ export const AuthProvider = ({ children }) => {
         completeOperationHandler,
         userReviewHandler,
         skipUserReviewHandler,
+        getMyRatings,
       }}
     >
       {children}
